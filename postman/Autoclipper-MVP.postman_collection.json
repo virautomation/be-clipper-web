@@ -1,0 +1,201 @@
+{
+  "info": {
+    "name": "Autoclipper MVP Backend",
+    "_postman_id": "5c4c2a92-6ff4-4bf0-9a6f-9f9f1e8a7f11",
+    "description": "Collection untuk testing endpoint Autoclipper MVP backend.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "job_id",
+      "value": ""
+    },
+    {
+      "key": "candidate_id",
+      "value": ""
+    },
+    {
+      "key": "youtube_url",
+      "value": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    },
+    {
+      "key": "keyword",
+      "value": "never gonna"
+    },
+    {
+      "key": "duration_target",
+      "value": "20"
+    },
+    {
+      "key": "scheduled_at",
+      "value": "2026-03-20T10:00:00+07:00"
+    },
+    {
+      "key": "caption",
+      "value": "caption tiktok"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Health check endpoint"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "item": [
+        {
+          "name": "POST /api/v1/jobs/analyze",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.job_id) {",
+                  "  pm.collectionVariables.set('job_id', jsonData.job_id);",
+                  "}",
+                  "",
+                  "if (jsonData.candidates && jsonData.candidates.length > 0) {",
+                  "  pm.collectionVariables.set('candidate_id', jsonData.candidates[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"youtube_url\": \"{{youtube_url}}\",\n  \"keyword\": \"{{keyword}}\",\n  \"duration_target\": {{duration_target}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/jobs/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "jobs", "analyze"]
+            },
+            "description": "Analyze YouTube transcript dan generate candidate clips"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/jobs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/jobs?status=&limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "jobs"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": ""
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "List jobs dengan filter pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/jobs/{job_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/jobs/{{job_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "jobs", "{{job_id}}"]
+            },
+            "description": "Get detail job by id"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/v1/jobs/{job_id}/render",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"candidate_id\": \"{{candidate_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/jobs/{{job_id}}/render",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "jobs", "{{job_id}}", "render"]
+            },
+            "description": "Render candidate terpilih lalu upload ke Supabase Storage"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/v1/jobs/{job_id}/schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduled_at\": \"{{scheduled_at}}\",\n  \"caption\": \"{{caption}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/jobs/{{job_id}}/schedule",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "jobs", "{{job_id}}", "schedule"]
+            },
+            "description": "Schedule metadata setelah job status rendered"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
