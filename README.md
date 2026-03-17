@@ -1,3 +1,13 @@
+---
+title: be-clipper
+emoji: 🐳
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Autoclipper MVP Backend
 
 Backend production-ready untuk workflow YouTube -> clip vertikal TikTok.
