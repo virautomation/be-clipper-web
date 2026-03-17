@@ -37,3 +37,7 @@ htmlcov/
 
 # Tooling cache
 .cache/
+
+# Local agent metadata
+.agent/
+.agents/
