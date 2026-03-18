@@ -25,7 +25,9 @@ Backend production-ready untuk workflow YouTube -> clip vertikal TikTok.
 ## Fitur Endpoint
 
 - `GET /health`
+- `POST /api/v1/jobs/discover`
 - `POST /api/v1/jobs/analyze`
+- `POST /api/v1/jobs/analyze/by-video`
 - `POST /api/v1/jobs/{job_id}/render`
 - `GET /api/v1/jobs/{job_id}`
 - `GET /api/v1/jobs?status=&limit=&offset=`

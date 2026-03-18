@@ -15,7 +15,11 @@ from app.schemas.jobs import (
     AnalyzeCandidateOut,
     AnalyzeJobRequest,
     AnalyzeJobResponse,
+    AnalyzeSelectedVideoRequest,
     CandidateDetail,
+    DiscoverVideoOut,
+    DiscoverVideosRequest,
+    DiscoverVideosResponse,
     JobDetailResponse,
     JobListItem,
     JobListResponse,
@@ -25,6 +29,7 @@ from app.schemas.jobs import (
     ScheduleResponse,
 )
 from app.services.candidate_service import select_candidates
+from app.services.discovery_service import search_videos_by_keyword
 from app.services.render_service import render_candidate_and_upload
 from app.services.transcript_service import fetch_transcript
 from app.utils.youtube import extract_video_id
@@ -34,15 +39,30 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/analyze", response_model=AnalyzeJobResponse, status_code=status.HTTP_201_CREATED)
-def analyze_job(payload: AnalyzeJobRequest, db: Session = Depends(get_db)) -> AnalyzeJobResponse:
-    video_id = extract_video_id(payload.youtube_url)
+def _build_preview_urls(video_id: str, start_time: float, end_time: float) -> tuple[str, str]:
+    start_sec = max(0, int(start_time))
+    end_sec = max(start_sec + 1, int(end_time))
+    preview_url = f"https://www.youtube.com/watch?v={video_id}&t={start_sec}s"
+    embed_url = (
+        f"https://www.youtube.com/embed/{video_id}?start={start_sec}&end={end_sec}"
+        "&autoplay=0&rel=0&modestbranding=1"
+    )
+    return preview_url, embed_url
 
+
+def _run_analyze(
+    *,
+    youtube_url: str,
+    video_id: str,
+    keyword: str,
+    duration_target: int,
+    db: Session,
+) -> AnalyzeJobResponse:
     job = ClipJob(
-        youtube_url=payload.youtube_url,
+        youtube_url=youtube_url,
         youtube_video_id=video_id,
-        keyword=payload.keyword,
-        duration_target=payload.duration_target,
+        keyword=keyword,
+        duration_target=duration_target,
         status=ClipJobStatus.queued,
         transcript_found=False,
     )
@@ -65,10 +85,11 @@ def analyze_job(payload: AnalyzeJobRequest, db: Session = Depends(get_db)) -> An
         db.commit()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Analyze failed") from exc
 
-    proposals = select_candidates(transcript=transcript, keyword=payload.keyword, duration_target=payload.duration_target)
+    proposals = select_candidates(transcript=transcript, keyword=keyword, duration_target=duration_target)
 
     candidates_out: list[AnalyzeCandidateOut] = []
     for proposal in proposals:
+        preview_url, embed_url = _build_preview_urls(video_id, proposal.start_time, proposal.end_time)
         candidate = ClipCandidate(
             job_id=job.id,
             start_time=proposal.start_time,
@@ -87,6 +108,8 @@ def analyze_job(payload: AnalyzeJobRequest, db: Session = Depends(get_db)) -> An
                 transcript_snippet=candidate.transcript_snippet,
                 score=candidate.score,
                 rank=candidate.rank,
+                preview_url=preview_url,
+                embed_url=embed_url,
             )
         )
 
@@ -103,6 +126,46 @@ def analyze_job(payload: AnalyzeJobRequest, db: Session = Depends(get_db)) -> An
         status=job.status.value,
         transcript_found=job.transcript_found,
         candidates=candidates_out,
+    )
+
+
+@router.post("/discover", response_model=DiscoverVideosResponse)
+def discover_videos(payload: DiscoverVideosRequest) -> DiscoverVideosResponse:
+    try:
+        videos = search_videos_by_keyword(keyword=payload.keyword, limit=payload.limit)
+    except Exception as exc:
+        logger.exception("Video discovery failed for keyword=%s", payload.keyword)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Video discovery failed") from exc
+
+    return DiscoverVideosResponse(
+        keyword=payload.keyword,
+        videos=[DiscoverVideoOut(**video) for video in videos],
+    )
+
+
+@router.post("/analyze", response_model=AnalyzeJobResponse, status_code=status.HTTP_201_CREATED)
+def analyze_job(payload: AnalyzeJobRequest, db: Session = Depends(get_db)) -> AnalyzeJobResponse:
+    video_id = extract_video_id(payload.youtube_url)
+
+    return _run_analyze(
+        youtube_url=payload.youtube_url,
+        video_id=video_id,
+        keyword=payload.keyword,
+        duration_target=payload.duration_target,
+        db=db,
+    )
+
+
+@router.post("/analyze/by-video", response_model=AnalyzeJobResponse, status_code=status.HTTP_201_CREATED)
+def analyze_job_by_video(payload: AnalyzeSelectedVideoRequest, db: Session = Depends(get_db)) -> AnalyzeJobResponse:
+    youtube_url = f"https://www.youtube.com/watch?v={payload.youtube_video_id}"
+
+    return _run_analyze(
+        youtube_url=youtube_url,
+        video_id=payload.youtube_video_id,
+        keyword=payload.keyword,
+        duration_target=payload.duration_target,
+        db=db,
     )
 
 

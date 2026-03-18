@@ -17,6 +17,12 @@ class AnalyzeJobRequest(BaseModel):
         return value
 
 
+class AnalyzeSelectedVideoRequest(BaseModel):
+    youtube_video_id: str = Field(min_length=6, max_length=32)
+    keyword: str = Field(min_length=1, max_length=255)
+    duration_target: int = Field(default=20, ge=15, le=20)
+
+
 class AnalyzeCandidateOut(BaseModel):
     id: str
     start_time: float
@@ -24,6 +30,8 @@ class AnalyzeCandidateOut(BaseModel):
     transcript_snippet: str
     score: float
     rank: int
+    preview_url: str
+    embed_url: str
 
 
 class AnalyzeJobResponse(BaseModel):
@@ -31,6 +39,26 @@ class AnalyzeJobResponse(BaseModel):
     status: str
     transcript_found: bool
     candidates: list[AnalyzeCandidateOut]
+
+
+class DiscoverVideosRequest(BaseModel):
+    keyword: str = Field(min_length=1, max_length=255)
+    limit: int = Field(default=3, ge=1, le=5)
+
+
+class DiscoverVideoOut(BaseModel):
+    youtube_url: str
+    youtube_video_id: str
+    title: str
+    channel: str
+    thumbnail_url: str
+    duration_seconds: int
+    relevance_score: float
+
+
+class DiscoverVideosResponse(BaseModel):
+    keyword: str
+    videos: list[DiscoverVideoOut]
 
 
 class RenderCandidateRequest(BaseModel):

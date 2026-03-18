@@ -2,8 +2,11 @@
 
 Frontend dashboard untuk menjalankan alur Autoclipper:
 
-- Analyze YouTube URL
-- Pilih candidate clip
+- Input keyword
+- Dapat 3 video paling relevan otomatis
+- Pilih video
+- Analyze candidate clip (berbasis `youtube_video_id`)
+- Preview clip langsung via video player
 - Trigger render
 - Buka hasil signed URL
 
