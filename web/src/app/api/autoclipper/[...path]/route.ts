@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
 
 const API_BASE_URL = process.env.AUTOCLIPPER_API_BASE_URL;
-
+ 
 function buildTargetUrl(path: string[], searchParams: URLSearchParams): string {
   if (!API_BASE_URL) {
     throw new Error("AUTOCLIPPER_API_BASE_URL is not configured");

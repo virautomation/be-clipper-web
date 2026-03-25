@@ -177,7 +177,7 @@ def render_candidate(job_id: str, payload: RenderCandidateRequest, db: Session =
     db.commit()
 
     try:
-        storage_path, signed_url = render_candidate_and_upload(job=job, candidate=candidate)
+        artifacts = render_candidate_and_upload(job=job, candidate=candidate)
     except Exception as exc:
         logger.exception("Render failed for job_id=%s", job.id)
         job.status = ClipJobStatus.failed
@@ -186,15 +186,19 @@ def render_candidate(job_id: str, payload: RenderCandidateRequest, db: Session =
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Render failed") from exc
 
     job.status = ClipJobStatus.rendered
-    job.render_storage_path = storage_path
-    job.render_signed_url = signed_url
+    job.render_storage_path = artifacts.final_video_storage_path
+    job.render_signed_url = artifacts.final_video_signed_url
     db.commit()
 
     return RenderCandidateResponse(
         job_id=job.id,
         render_status=job.status.value,
-        storage_path=storage_path,
-        signed_url=signed_url,
+        storage_path=artifacts.final_video_storage_path,
+        signed_url=artifacts.final_video_signed_url,
+        thumbnail_path=artifacts.thumbnail_storage_path,
+        thumbnail_signed_url=artifacts.thumbnail_signed_url,
+        hook_text=artifacts.hook_text,
+        final_video_path=artifacts.final_video_storage_path,
         clip_start=candidate.start_time,
         clip_end=candidate.end_time,
     )

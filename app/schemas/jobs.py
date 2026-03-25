@@ -82,6 +82,10 @@ class RenderCandidateResponse(BaseModel):
     render_status: str
     storage_path: str
     signed_url: str
+    thumbnail_path: str
+    thumbnail_signed_url: str
+    hook_text: str
+    final_video_path: str
     clip_start: float
     clip_end: float
 

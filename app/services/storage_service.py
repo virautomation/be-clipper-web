@@ -32,30 +32,21 @@ def _ensure_bucket_exists(client: Client, bucket_name: str) -> None:
     client.storage.create_bucket(bucket_name, options={"public": False})
 
 
-def upload_clip_and_get_signed_url(local_file_path: str, destination_path: str) -> str:
-    """Upload clip to Supabase Storage private bucket and return signed URL."""
-
+def upload_file_and_get_signed_url(local_file_path: str, destination_path: str, content_type: str) -> str:
     settings = get_settings()
     client = get_supabase_client()
     _ensure_bucket_exists(client, settings.supabase_storage_bucket)
     bucket = client.storage.from_(settings.supabase_storage_bucket)
 
     file_bytes = Path(local_file_path).read_bytes()
+    file_options = {"content-type": content_type, "upsert": "true"}
+
     try:
-        bucket.upload(
-            path=destination_path,
-            file=file_bytes,
-            file_options={"content-type": "video/mp4", "upsert": "true"},
-        )
+        bucket.upload(path=destination_path, file=file_bytes, file_options=file_options)
     except StorageApiError as exc:
-        # Handle race/partially configured environments where bucket is missing.
         if "Bucket not found" in str(exc):
             _ensure_bucket_exists(client, settings.supabase_storage_bucket)
-            bucket.upload(
-                path=destination_path,
-                file=file_bytes,
-                file_options={"content-type": "video/mp4", "upsert": "true"},
-            )
+            bucket.upload(path=destination_path, file=file_bytes, file_options=file_options)
         else:
             raise
 
@@ -67,3 +58,8 @@ def upload_clip_and_get_signed_url(local_file_path: str, destination_path: str) 
         or ""
     )
     return str(signed_url)
+
+
+def upload_clip_and_get_signed_url(local_file_path: str, destination_path: str) -> str:
+    """Upload clip to Supabase Storage private bucket and return signed URL."""
+    return upload_file_and_get_signed_url(local_file_path, destination_path, content_type="video/mp4")
